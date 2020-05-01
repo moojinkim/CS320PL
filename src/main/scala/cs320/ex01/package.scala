@@ -2,20 +2,33 @@ package cs320
 
 package object ex01 extends Exercise01 {
 
-  def volumeOfCuboid(a: Int, b: Int, c: Int): Int = ???
-  def concat(x: String, y: String): String = ???
+  def volumeOfCuboid(a: Int, b: Int, c: Int): Int =
+    a*b*c
+  def concat(x: String, y: String): String =
+    x+y
 
-  def addN(n: Int): Int => Int = ???
-  def twice(f: Int => Int): Int => Int = ???
-  def compose(f: Int => Int, g: Int => Int): Int => Int = ???
+  def addN(n: Int): Int => Int ={
+    def addNn(x: Int): Int= x+n
+    addNn}
+  def twice(f: Int => Int): Int => Int = {x=> f(f(x))}
+  def compose(f: Int => Int, g: Int => Int): Int => Int = {x => f(g(x))}
 
-  def double(l: List[Int]): List[Int] = ???
-  def sum(l: List[Int]): Int = ???
+  def double(l: List[Int]): List[Int] = l.map( x=> 2*x)
+  def sum(l: List[Int]): Int = l.foldLeft(0)((x,y)=> x+y)
 
-  def getKey(m: Map[String, Int], s: String): Int = ???
+  def getKey(m: Map[String, Int], s: String): Int = m.getOrElse(s,error(s))
 
-  def countLeaves(t: Tree): Int = ???
-  def flatten(t: Tree): List[Int] = ???
+  // trait Tree
+  // case class Branch(left: Tree, value: Int, right: Tree) extends Tree
+  // case class Leaf(value: Int) extends Tree
+  def countLeaves(t: Tree): Int = t match{
+    case Branch (a,b,c) => countLeaves(a)+countLeaves(c)
+    case _ => 1
+  }
+  def flatten(t: Tree): List[Int] = t match{
+    case Branch (a,b,c) => flatten(a) ++ (b :: flatten(c))
+    case Leaf(b) => List(b)
+  }
 
   def tests: Unit = {
     test(concat("abc", "def"), "abcdef")
