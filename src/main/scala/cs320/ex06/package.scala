@@ -95,6 +95,51 @@ package object ex06 extends Exercise06 {
         case Nil => (v1,s1)
       }
     }
+    // case Rec(fields) => {
+    //   def ffold(x:(Map[String, Addr], Sto), y:(String, Expr)):(Map[String, Addr], Sto)={
+    //     case ((map1, sto1),(st1, exp1)) => {
+    //       val (v1,s1)= interp(exp1, env, sto1)
+    //       val addr = malloc(s1)
+    //       val rsto=s1+(addr ->v1)
+    //       (map1+(st1 -> addr),rsto)
+    //     }
+    //   }
+    //   val (rmap, rstat)= fields.foldLeft(Map[String, Addr](),sto)ffold
+    //   (RecV(rmap),rstat)
+    // }
+    case Rec(fields) => {
+      val (rmap, rstat)= fields.foldLeft(Map[String, Addr](),sto){
+        case ((map1, sto1),(st1, exp1)) => {
+          val (v1,s1)= interp(exp1, env, sto1)
+          val addr = malloc(s1)
+          val rsto=s1+(addr ->v1)
+          (map1+(st1 -> addr),rsto)
+        }
+      }
+      (RecV(rmap),rstat)
+    }
+    case Get(record, field) => {
+      val (v1,s1)=interp (record, env, sto)
+      v1 match{
+        case RecV(rec) => {
+          val addr=rec.getOrElse(field,error("no such field"))
+          val rval=s1.getOrElse(addr, error("boxing error: no value"))
+          (rval,s1)
+          }
+        case _ => error("not a record")
+      }
+    }
+    case Set(record, field, expr) => {
+      val (v1, s1)= interp (record, env, sto)
+      v1 match {
+        case RecV(rec) => {
+          val addr=rec.getOrElse(field,error("no such field"))
+          val (v2, s2)=interp (expr, env, s1)
+          val ss=s2+(addr -> v2)
+          (v2,ss)
+        }
+      }
+    }
   }
 
   def tests: Unit = {
@@ -109,18 +154,31 @@ package object ex06 extends Exercise06 {
                     b.get
                   }
                 }(Box(1))"""), "10")
-    // testExc(run("{ x = 1 }.y"), "no such field")
-    // test(run("""{
-    //               r => {
-    //                 { r.x = 5 };
-    //                 r.x
-    //               }
-    //             }({ x = 1 })"""), "5")
+    testExc(run("{ x = 1 }.y"), "no such field")
+    test(run("""{
+                  r => {
+                    { r.x = 5 };
+                    r.x
+                  }
+                }({ x = 1 })"""), "5")
     test(run("42"), "42")
     test(run("{ x => x }"), "function")
     test(run("Box(1)"), "box")
-    // test(run("{}"), "record")
-
+    test(run("{}"), "record")
+    test(run("{ 1; 2 }"), "2")
+    test(run("{ b => b.get }(Box(10))"), "10")
+    test(run("{ b => { b.set(12); b.get } }(Box(10))"), "12")
+    test(run("{ b => b.get }({ Box(9); Box(10) })"), "10")
+    test(run("{ b => { a => b.get } }(Box(9))(Box(10))"), "9")
+    test(run("{ b => { b.set(2); b.get } }(Box(1))"), "2")
+    test(run("{ b => { b.set((9 + b.get)); b.get } }(Box(1))"), "10")
+    test(run("{ b => { b.set((2 + b.get)); b.set((3 + b.get)); b.set((4 + b.get)); b.get } }(Box(1))"), "10")
+    test(run("{ r => r.x }({ x = 1 })"), "1")
+    test(run("{ r => { { r.x = 5 }; r.x } }({ x = 1 })"), "5")
+    test(run("{ g => { s => { r1 => { r2 => (r1.b + { s(r1)(g(r2)); ({ s(r2)(g(r1)); r1.b } + r2.b) }) } } } }({ r => r.a })({ r => { v => { r.b = v } } })({ a = 0, b = 2 })({ a = 3, b = 4 })"), "5")
+    test(run("{ x => x }"), "function")
+    test(run("Box(1)"), "box")
+    test(run("{}"), "record")
     /* Write your own tests */
   }
 }
